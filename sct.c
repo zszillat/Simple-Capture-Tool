@@ -15,8 +15,7 @@ char filename[256] = "";
 char path[256] = "";
 int copy_to_clipboard = 0;
 int save_file = 0;
-// XRectangle hole = {0,0,0,0}
-
+XRectangle hole = {0,0,0,0};
 
 int help() {
     printf("-p, --path");
@@ -24,14 +23,7 @@ int help() {
     printf("-c, --clipboard");
 }
 
-// void copyToClipboard(char *filetype) {
-
-//     char command[256];
-//     snprintf(command, sizeof(command), "xclip -selection clipboard -t image/ppm -i %s", path);
-//     system(command);
-// }
-
-int saveScreenshot(XRectangle hole, char *filetype) {
+int saveScreenshot() {
 
     Display *display = XOpenDisplay(NULL);
 
@@ -129,7 +121,6 @@ int main(int argc, char *argv[]) {
 
     //ARGS
     strcpy(path, homeDir);
-    char filetype[256] = "ppm";     // Default filetype
 
     // Get current date and time for default filename if -n is absent
     time_t t = time(NULL);
@@ -143,8 +134,6 @@ int main(int argc, char *argv[]) {
             strncpy(filename, argv[i + 1], sizeof(filename) - 1);
         } else if (strcmp(argv[i], "-p") == 0 && i + 1 < argc) {
             strncpy(path, argv[i + 1], sizeof(path) - 1);
-        } else if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
-            strncpy(filetype, argv[i + 1], sizeof(filetype) - 1);
         }
     }
 
@@ -216,7 +205,11 @@ int main(int argc, char *argv[]) {
     }
 
     //make initial rectangle
-    XRectangle hole = {start_x, start_y, 0,0 };
+    //XRectangle hole = {start_x, start_y, 0,0 };
+
+    hole.x = start_x;
+    hole.y = start_y;
+    
     XShapeCombineRectangles(display, window, ShapeBounding, start_x, start_y, &hole, 1, ShapeSubtract, Unsorted);
 
     // // Wait for the mouse release
@@ -267,11 +260,10 @@ int main(int argc, char *argv[]) {
 
     sleep(1);
 
-    saveScreenshot(hole, filetype);
+    saveScreenshot();
 
     sleep(1);
 
-    //copyToClipboard(filename, filetype, filepath);
     
     return 0;
 }
