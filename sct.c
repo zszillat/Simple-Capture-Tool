@@ -10,7 +10,13 @@
 #include <sys/wait.h>
 #include <png.h>
 
-//global variables
+// global variables
+char filename[256] = "";
+char path[256] = "";
+int copy_to_clipboard = 0;
+int save_file = 0;
+// XRectangle hole = {0,0,0,0}
+
 
 int help() {
     printf("-p, --path");
@@ -18,14 +24,14 @@ int help() {
     printf("-c, --clipboard");
 }
 
-void copyToClipboard(char *filename, char *filetype, char *filepath) {
+// void copyToClipboard(char *filetype) {
 
-    char command[256];
-    snprintf(command, sizeof(command), "xclip -selection clipboard -t image/ppm -i %s", filepath);
-    system(command);
-}
+//     char command[256];
+//     snprintf(command, sizeof(command), "xclip -selection clipboard -t image/ppm -i %s", path);
+//     system(command);
+// }
 
-int saveScreenshot(XRectangle hole, char *filename, char *filetype, char *filepath) {
+int saveScreenshot(XRectangle hole, char *filetype) {
 
     Display *display = XOpenDisplay(NULL);
 
@@ -46,10 +52,10 @@ int saveScreenshot(XRectangle hole, char *filename, char *filetype, char *filepa
 
     // Create the full filepath with filename and extension
     strcat(filename, ".png");
-    strcat(filepath, "/");
-    strcat(filepath, filename);
+    strcat(path, "/");
+    strcat(path, filename);
 
-    FILE *f = fopen(filepath, "wb");
+    FILE *f = fopen(path, "wb");
     if (!f) {
         fprintf(stderr, "Failed to open output file\n");
         XDestroyImage(image);
@@ -122,9 +128,7 @@ int main(int argc, char *argv[]) {
     const char* homeDir = getenv("HOME");
 
     //ARGS
-    char filename[256];
-    char filepath[256] = ""; // Default filepath
-    strcpy(filepath, homeDir);
+    strcpy(path, homeDir);
     char filetype[256] = "ppm";     // Default filetype
 
     // Get current date and time for default filename if -n is absent
@@ -138,7 +142,7 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) {
             strncpy(filename, argv[i + 1], sizeof(filename) - 1);
         } else if (strcmp(argv[i], "-p") == 0 && i + 1 < argc) {
-            strncpy(filepath, argv[i + 1], sizeof(filepath) - 1);
+            strncpy(path, argv[i + 1], sizeof(path) - 1);
         } else if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
             strncpy(filetype, argv[i + 1], sizeof(filetype) - 1);
         }
@@ -263,7 +267,7 @@ int main(int argc, char *argv[]) {
 
     sleep(1);
 
-    saveScreenshot(hole, filename, filetype, filepath);
+    saveScreenshot(hole, filetype);
 
     sleep(1);
 
