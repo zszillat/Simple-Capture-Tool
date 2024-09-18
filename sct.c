@@ -8,6 +8,9 @@
 #include <time.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <png.h>
+
+//global variables
 
 int help() {
     printf("-p, --path");
@@ -41,8 +44,8 @@ int saveScreenshot(XRectangle hole, char *filename, char *filetype, char *filepa
         return EXIT_FAILURE;
     }
 
-    strcat(filename, ".");
-    strcat(filename, filetype);
+    // Create the full filepath with filename and extension
+    strcat(filename, ".png");
     strcat(filepath, "/");
     strcat(filepath, filename);
 
@@ -53,26 +56,66 @@ int saveScreenshot(XRectangle hole, char *filename, char *filetype, char *filepa
         return EXIT_FAILURE;
     }
 
-    fprintf(f, "P6\n%d %d\n255\n", hole.width, hole.height);
-    for (int i = 0; i < hole.height; ++i) {
-        for (int j = 0; j < hole.width; ++j) {
-            unsigned long pixel = XGetPixel(image, j, i);
-            unsigned char r = (pixel & image->red_mask) >> 16;
-            unsigned char g = (pixel & image->green_mask) >> 8;
-            unsigned char b = (pixel & image->blue_mask);
-
-            fputc(r, f);
-            fputc(g, f);
-            fputc(b, f);
-        }
+    // Initialize libpng
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png) {
+        fprintf(stderr, "Failed to create PNG write structure\n");
+        fclose(f);
+        XDestroyImage(image);
+        return EXIT_FAILURE;
     }
 
+    png_infop info = png_create_info_struct(png);
+    if (!info) {
+        fprintf(stderr, "Failed to create PNG info structure\n");
+        png_destroy_write_struct(&png, NULL);
+        fclose(f);
+        XDestroyImage(image);
+        return EXIT_FAILURE;
+    }
+
+    if (setjmp(png_jmpbuf(png))) {
+        fprintf(stderr, "Error during PNG creation\n");
+        png_destroy_write_struct(&png, &info);
+        fclose(f);
+        XDestroyImage(image);
+        return EXIT_FAILURE;
+    }
+
+    png_init_io(png, f);
+
+    // Set PNG header info
+    png_set_IHDR(png, info, hole.width, hole.height,
+                 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+    png_write_info(png, info);
+
+    // Write image data
+    png_bytep row = (png_bytep) malloc(3 * hole.width * sizeof(png_byte));
+    for (int y = 0; y < hole.height; ++y) {
+        for (int x = 0; x < hole.width; ++x) {
+            unsigned long pixel = XGetPixel(image, x, y);
+            row[x * 3]     = (pixel & image->red_mask) >> 16;  // Red
+            row[x * 3 + 1] = (pixel & image->green_mask) >> 8; // Green
+            row[x * 3 + 2] = (pixel & image->blue_mask);       // Blue
+        }
+        png_write_row(png, row);
+    }
+
+    // End write
+    png_write_end(png, NULL);
+
+    // Cleanup
+    free(row);
+    png_destroy_write_struct(&png, &info);
     fclose(f);
     XDestroyImage(image);
     XCloseDisplay(display);
 
     return EXIT_SUCCESS;
 }
+
 
 int main(int argc, char *argv[]) {
 
