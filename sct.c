@@ -95,6 +95,7 @@ void clearDir() {
 }
 
 void handleArgs(int argc, char *argv[]) {
+    int pathDefined = 0;
 
     //set default directory to home
     const char* homeDir = getenv("HOME");
@@ -119,6 +120,7 @@ void handleArgs(int argc, char *argv[]) {
             }
         } else if (strcmp(argv[i], "--path") == 0 || strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) {
+                pathDefined = 1;
                 strcpy(path, argv[i + 1]);
                 i++;
             } else {
@@ -133,7 +135,7 @@ void handleArgs(int argc, char *argv[]) {
         }
     }
 
-    if (!save_file) {
+    if (!save_file && !pathDefined) {
         strcpy(path, homeDir);
         strcat(path, "/.cache/sct");
 
