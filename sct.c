@@ -48,8 +48,6 @@ int checkDir() {
             }
         }
         printf("Directory created: %s\n", path);
-    } else {
-        printf("Directory already exists: %s\n", path);
     }
     return 0;
 }
