@@ -5,7 +5,7 @@ A Simple Screenshot Tool for Linux
 
 ## Compile Instructions
 
-1. **Download Repo**
+1. **Download SCT Repo**
  ```
    git clone https://github.com/zszillat/simplecapturetool
 ```
