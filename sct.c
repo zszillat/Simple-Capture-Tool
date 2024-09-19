@@ -6,16 +6,22 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
-#include <string.h>
 #include <sys/wait.h>
 #include <png.h>
+#include <dirent.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 // global variables
 char filename[256] = "";
 char path[256] = "";
-int copy_to_clipboard = 0;
+char fullPath[256] = "";
+int copy = 0;
 int save_file = 0;
 int help = 0;
+
 XRectangle hole = {0,0,0,0};
 
 int printHelp() {
@@ -26,6 +32,68 @@ int printHelp() {
     printf("  -p, --path       Specify a path, e.g., \"home/username/Documents\"\n");
     printf("  -c, --clipboard  Copies the image to clipboard\n");
     printf("  -s, --save       Saves file to either home folder or specified folder\n");
+}
+
+int checkDir() {
+    struct stat st = {0};
+
+    // Check if the directory already exists
+    if (stat(path, &st) == -1) {
+        // Directory doesn't exist, create it
+        if (mkdir(path, 0700) == -1) {
+            // Handle error
+            if (errno != EEXIST) {
+                fprintf(stderr, "Error creating directory %s: %s\n", path, strerror(errno));
+                return -1;
+            }
+        }
+        printf("Directory created: %s\n", path);
+    } else {
+        printf("Directory already exists: %s\n", path);
+    }
+    return 0;
+}
+
+void clearDir() {
+        struct dirent *entry;
+    DIR *dir = opendir(path);
+    int file_delete_count = 0;
+
+    if (dir == NULL) {
+        perror("opendir");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        char file_path[1024];
+
+        // Skip the current directory (.) and the parent directory (..)
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Construct the full path of the file
+        snprintf(file_path, sizeof(file_path), "%s/%s", path, entry->d_name);
+
+        // Check if it is a regular file
+        struct stat statbuf;
+        if (stat(file_path, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
+            if (remove(file_path) == 0) {
+                file_delete_count++;
+                //printf("Deleted file: %s\n", file_path);
+
+                // Stop if more than 2 files are deleted
+                if (file_delete_count > 2) {
+                    printf("Warning: More than 2 files deleted, stopping further deletions.\n");
+                    break;
+                }
+            } else {
+                perror("remove");
+            }
+        }
+    }
+
+    closedir(dir);
 }
 
 void handleArgs(int argc, char *argv[]) {
@@ -59,12 +127,23 @@ void handleArgs(int argc, char *argv[]) {
                 printf("Error: --path or -p requires a path argument.\n");
             }
         } else if (strcmp(argv[i], "--clipboard") == 0 || strcmp(argv[i], "-c") == 0) {
-            copy_to_clipboard = 1;
+            copy = 1;
         } else if (strcmp(argv[i], "--save") == 0 || strcmp(argv[i], "-s") == 0) {
             save_file = 1;
         } else {
             printf("Unknown argument: %s\n", argv[i]);
         }
+    }
+
+    if (!save_file) {
+        strcpy(path, homeDir);
+        strcat(path, "/.cache/sct");
+
+        //check if directory exists
+        checkDir();
+
+        //clear out directory
+        clearDir();
     }
 }
 
@@ -211,11 +290,12 @@ int saveScreenshot() {
     }
 
     // Create the full filepath with filename and extension
-    strcat(filename, ".png");
-    strcat(path, "/");
-    strcat(path, filename);
+    strcat(fullPath, path);
+    strcat(fullPath, "/");
+    strcat(fullPath, filename);
+    strcat(fullPath, ".png");
 
-    FILE *f = fopen(path, "wb");
+    FILE *f = fopen(fullPath, "wb");
     if (!f) {
         fprintf(stderr, "Failed to open output file\n");
         XDestroyImage(image);
@@ -282,6 +362,21 @@ int saveScreenshot() {
     return EXIT_SUCCESS;
 }
 
+void copyToClipboard() {
+    char command[512];
+    
+    // Construct the command to copy image to clipboard using xclip
+    snprintf(command, sizeof(command), "xclip -selection clipboard -t image/png -i %s", fullPath);
+    
+    // Execute the command
+    int result = system(command);
+    
+    // Check if the command was executed successfully
+    if (result != 0) {
+        fprintf(stderr, "Failed to copy image to clipboard.\n");
+    }
+} 
+
 int main(int argc, char *argv[]) {
     handleArgs(argc, argv);
 
@@ -295,6 +390,12 @@ int main(int argc, char *argv[]) {
     sleep(0.10);
 
     saveScreenshot();
+
+    sleep(0.25);
+
+    if (copy) {
+        copyToClipboard();
+    }
 
     return 0;
 }
