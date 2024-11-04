@@ -22,12 +22,12 @@ A Simple Screenshot Tool for Linux
 ###### Debian
 ```
 sudo apt-get update
-sudo apt-get install -y libx11-dev libxext-dev libpng-dev
+sudo apt-get install -y libx11-dev libxext-dev libpng-dev xclip
 ```
 ###### Arch
 ```
 sudo pacman -Sy
-sudo pacman -S libx11 libxext libpng
+sudo pacman -S libx11 libxext libpng xclip
 ```
 3. **Compile**
 ```
