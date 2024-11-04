@@ -11,8 +11,12 @@ A Simple Screenshot Tool for Linux
 ```
 2. **Download Dependencies**
 ```
+[Debian]
 sudo apt-get update
 sudo apt-get install -y libx11-dev libxext-dev libpng-dev
+[Arch]
+sudo pacman -Sy
+sudo pacman -S libx11 libxext libpng
 ```
 3. **Compile**
 ```
