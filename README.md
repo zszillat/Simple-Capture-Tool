@@ -33,7 +33,7 @@ sudo pacman -S libx11 libxext libpng xclip
 ```
 cd simplecapturetool
 gcc sct.c -o sct -lX11 -lXext -lpng
-sudo cp sct /usr/local/bin #Add to path (optional)
+sudo cp sct /usr/local/bin //Add to path (optional)
 ```
 4. **Clean Up**
 ```
