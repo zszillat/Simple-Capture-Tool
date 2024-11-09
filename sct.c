@@ -53,7 +53,8 @@ int checkDir() {
 }
 
 void clearDir() {
-        struct dirent *entry;
+
+    struct dirent *entry;
     DIR *dir = opendir(path);
     int file_delete_count = 0;
 
@@ -121,7 +122,7 @@ void handleArgs(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "--path") == 0 || strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) {
                 pathDefined = 1;
-                strcpy(path, argv[i + 1]);
+                snprintf(path, sizeof(path), "%s", argv[i + 1]);
                 i++;
             } else {
                 printf("Error: --path or -p requires a path argument.\n");
@@ -362,8 +363,53 @@ int saveScreenshot() {
     return EXIT_SUCCESS;
 }
 
-void copyToClipboard() {
+int is_xclip_installed() {
+    // Check if xclip is in the PATH
+    int status = system("command -v xclip >/dev/null 2>&1");
+    return status == 0;
+}
+
+int install_xclip() {
+    char response;
+
+    printf("xclip is not installed. Would you like to install it now? (y/n): ");
+    scanf(" %c", &response);
+
+    if (response == 'y' || response == 'Y') {
+        printf("Attempting to install xclip...\n");
+
+        // Detect the package manager and construct the install command
+        #if defined(__linux__)
+            if (system("command -v apt >/dev/null 2>&1") == 0) {
+                // Debian-based system
+                system("sudo apt update && sudo apt install -y xclip");
+            } else if (system("command -v pacman >/dev/null 2>&1") == 0) {
+                // Arch-based system
+                system("sudo pacman -Syu xclip --noconfirm");
+            } else {
+                printf("Error: Could not detect a supported package manager.\n");
+            }
+        #else
+            printf("Error: Unsupported operating system.\n");
+            return 0;
+        #endif
+    } else {
+        printf("xclip installation canceled by user.\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+int copyToClipboard() {
     char command[512];
+
+    if (!is_xclip_installed()) {
+        // Re-check if xclip is installed after the attempted installation
+        if (install_xclip() == 0) {
+            return 0;
+        }
+    }
     
     // Construct the command to copy image to clipboard using xclip
     snprintf(command, sizeof(command), "xclip -selection clipboard -t image/png -i %s", fullPath);
@@ -394,7 +440,9 @@ int main(int argc, char *argv[]) {
     sleep(0.25);
 
     if (copy) {
-        copyToClipboard();
+        if (copyToClipboard() == 0) {
+            return 0;
+        }
     }
 
     return 0;

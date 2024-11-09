@@ -13,27 +13,27 @@ A Simple Screenshot Tool for Linux
 
 ## Compile Instructions
 
-1. **Download SCT Repo**
- ```
-   git clone https://github.com/zszillat/simplecapturetool
-```
-2. **Download Dependencies**
+1. **Download Dependencies**
 
 ###### Debian
 ```
 sudo apt-get update
-sudo apt-get install -y libx11-dev libxext-dev libpng-dev xclip
+sudo apt-get install -y libx11-dev libxext-dev libpng-dev xclip git
 ```
 ###### Arch
 ```
 sudo pacman -Sy
-sudo pacman -S libx11 libxext libpng xclip
+sudo pacman -S libx11 libxext libpng xclip git
+```
+2. **Download SCT Repo**
+ ```
+   git clone https://github.com/zszillat/simplecapturetool
 ```
 3. **Compile**
 ```
 cd simplecapturetool
 gcc sct.c -o sct -lX11 -lXext -lpng
-sudo cp sct /usr/local/bin //Add to path (optional)
+sudo cp sct /usr/local/bin //Add to path
 ```
 4. **Clean Up**
 ```
